@@ -5,11 +5,10 @@
 
 #include "../Include/VenV/ISA.h"
 #include "../Include/VenV/Assembler.h"
-#include "../Include/Interface/Core/Memory.h"
-#include "../Include/Interface/Core/String.h"
+#include "../Include/Interface/Std/Memory.h"
 #include "../Include/Interface/Core/ASCII.h"
 #include "../Include/Interface/Core/Char.h"
-#include "../Pure.h"
+#include "../Include/Pure.h"
 
 /*---- Global Error Message ----*/
 
@@ -112,19 +111,19 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
     int64_t val = 0;
     boolean is_negative = false;
     const char* p = str;
-    
+
     if (*p == '-')
     {
         is_negative = true;
         p++;
     }
-    
+
     while (*p >= '0' && *p <= '9')
     {
         val = val * 10 + (*p - '0');
         p++;
     }
-    
+
     if (*p == '\0')
     {
         *ok = true;
@@ -768,7 +767,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             if (rd < 0 || rs1 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
 
-            insn = func << VENV_FUNC_SHIFT;
+            insn = (func & 0x7) << VENV_RS2_SHIFT;
             insn |= (imm & VENV_IMM12_MASK) << VENV_IMM12_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
             insn |= (rd & VENV_RD_MASK) << VENV_RD_SHIFT;
@@ -824,10 +823,10 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
     err_t err = heap_allocate(code_size, (voidptr_t*)out_code);
     if (err != PURE_OK)
         return err;
-    
+
     /* Initialize to zero using memory_set */
     memory_set(*out_code, 0, code_size);
-    
+
     /* Assemble each line */
     for (uint64_t i = 0; i < src->line_count; i++)
     {

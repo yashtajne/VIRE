@@ -300,7 +300,7 @@ static err_t execute_opimm(venv_cpu_t* cpu, venv_insn_t insn)
 {
     uint8_t rd = DECODE_RD(insn);
     uint8_t rs1 = DECODE_RS1(insn);
-    uint8_t func = DECODE_FUNC(insn);
+    uint8_t func = (insn >> VENV_RS2_SHIFT) & 0x7;
     int64_t imm = sext_imm12(DECODE_IMM12(insn));
 
     uint64_t val = venv_cpu_read_reg(cpu, rs1);

@@ -7,9 +7,12 @@
 #include "../Include/Interface/Core/ASCII.h"
 #include "../Include/Interface/Core/Memory.h"
 #include "../Include/Interface/Std/Memory.h"
-#include "../Pure.h"
+#include "../Include/Interface/Std/IO.h"
 
-extern void console_putchar(char c);
+void console_putchar(char c)
+{
+    __system_print(&c, 1);
+}
 
 static void print_uint64(uint64_t value)
 {
