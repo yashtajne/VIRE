@@ -1,5 +1,5 @@
 /*
- * VenV - Virtual Environment Engine
+ * VIRE - Virtual Isolated Runtime Environment
  * Assembler Implementation
  */
 
@@ -669,9 +669,19 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* ld rd, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-
-                /* Parse offset(rs1) format */
-                char* paren = strchr(line->operands[1], '(');
+                
+                /* Parse offset(rs1) format - manual strchr replacement */
+                char* paren = NULL;
+                uint64_t idx_p = 0;
+                while (line->operands[1][idx_p] != '\0')
+                {
+                    if (line->operands[1][idx_p] == '(')
+                    {
+                        paren = &line->operands[1][idx_p];
+                        break;
+                    }
+                    idx_p++;
+                }
                 if (paren != NULL)
                 {
                     *paren = '\0';
@@ -690,8 +700,19 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* sd rs2, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-
-                char* paren = strchr(line->operands[1], '(');
+                
+                /* Parse offset(rs1) format - manual strchr replacement */
+                char* paren = NULL;
+                uint64_t idx_p = 0;
+                while (line->operands[1][idx_p] != '\0')
+                {
+                    if (line->operands[1][idx_p] == '(')
+                    {
+                        paren = &line->operands[1][idx_p];
+                        break;
+                    }
+                    idx_p++;
+                }
                 if (paren != NULL)
                 {
                     *paren = '\0';
@@ -788,10 +809,15 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
     err_t err = heap_allocate(code_size, (voidptr_t*)out_code);
     if (err != PURE_OK)
         return err;
-
-    /* Initialize to zero */
-    memset( *out_code, 0, code_size );
-
+    
+    /* Initialize to zero - manual memset replacement */
+    uint64_t init_idx = 0;
+    while (init_idx < code_size)
+    {
+        (*out_code)[init_idx] = 0;
+        init_idx++;
+    }
+    
     /* Assemble each line */
     for (uint64_t i = 0; i < src->line_count; i++)
     {

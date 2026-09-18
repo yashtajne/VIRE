@@ -1,24 +1,21 @@
 ```
-# Compiled and build artifacts
-*.o
-*.obj
-*.out
-*.exe
-*.dll
-*.so
-*.a
-
 # Dependencies
 .venv/
 venv/
 __pycache__/
-.mypy_cache/
-.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
 
-# Logs and temp files
+# Build artifacts
+build/
+dist/
+*.so
+*.dylib
+*.dll
+
+# Logs
 *.log
-*.tmp
-*.swp
 
 # Environment
 .env
@@ -34,12 +31,40 @@ build/
 dist/
 target/
 
+# OS
+.DS_Store
+Thumbs.db
+
 # Coverage
 coverage/
 htmlcov/
 .coverage
 
-# OS specific
-.DS_Store
-Thumbs.db
+# Testing
+.pytest_cache/
+.mypy_cache/
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```

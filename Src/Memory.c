@@ -1,5 +1,5 @@
 /*
- * VenV - Virtual Environment Engine
+ * VIRE - Virtual Isolated Runtime Environment
  * Memory Implementation
  */
 
