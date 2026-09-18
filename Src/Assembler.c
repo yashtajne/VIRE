@@ -57,9 +57,10 @@ static int find_register(const char* name)
     /* Check for numeric register (x0-x15) */
     if (name[0] == 'x' || name[0] == 'r')
     {
-        int reg = atoi(name + 1);
-        if (reg >= 0 && reg < VENV_REG_COUNT)
-            return reg;
+        int64_t reg = 0;
+        err_t err = ascii_to_integer((charseq_t)(name + 1), &reg);
+        if (err == PURE_OK && reg >= 0 && reg < VENV_REG_COUNT)
+            return (int)reg;
     }
 
     /* Check aliases */
@@ -70,7 +71,7 @@ static int find_register(const char* name)
     return -1;
 }
 
-static uint64_t parse_immediate(const char* str, boolean* success)
+static uint64_t parse_immediate(const char* str, boolean* ok)
 {
     *success = FALSE;
 
@@ -80,13 +81,24 @@ static uint64_t parse_immediate(const char* str, boolean* success)
     /* Handle hex */
     if (strncmp(str, "0x", 2) == 0 || strncmp(str, "0X", 2) == 0)
     {
-        char* end;
-        uint64_t val = strtoull(str, &end, 16);
-        if (*end == '\0')
+        /* Parse hex manually */
+        const char* p = str + 2;
+        uint64_t val = 0;
+        while (*p != '\0')
         {
-            *success = TRUE;
-            return val;
+            val <<= 4;
+            if (*p >= '0' && *p <= '9')
+                val |= (*p - '0');
+            else if (*p >= 'a' && *p <= 'f')
+                val |= (*p - 'a' + 10);
+            else if (*p >= 'A' && *p <= 'F')
+                val |= (*p - 'A' + 10);
+            else
+                return 0;  /* Invalid hex digit */
+            p++;
         }
+        *ok = TRUE;
+        return val;
     }
 
     /* Handle decimal */
@@ -94,7 +106,7 @@ static uint64_t parse_immediate(const char* str, boolean* success)
     int64_t val = strtoll(str, &end, 10);
     if (*end == '\0')
     {
-        *success = TRUE;
+        *ok = TRUE;
         return (uint64_t)val;
     }
 
