@@ -8,6 +8,7 @@ static inline boolean is_alphabetic   (char);
 static inline boolean is_alphanumeric (char);
 
 static inline uint64_t charseq_countbytes (char* charseq);
+static inline char* charseq_firstOccurance (charseq_t haystack, char needle);
 
 boolean charseq_hasPrefix (charseq_t original, charseq_t prefix, err_t* occured);
 boolean charseq_hasSuffix (charseq_t original, charseq_t suffix, err_t* occured);
@@ -59,6 +60,20 @@ charseq_countbytes(const charseq_t charseq)
 		count++;
 
 	return count;
+}
+
+static inline char*
+charseq_firstOccurance(charseq_t haystack, char needle)
+{
+	if (haystack == NULL) return NULL;
+	
+	while (*haystack != '\0')
+	{
+		if (*haystack == needle)
+			return haystack;
+		haystack++;
+	}
+	return NULL;
 }
 
 #endif // Char_h

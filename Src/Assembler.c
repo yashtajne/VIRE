@@ -8,7 +8,9 @@
 #include "../Include/Interface/Std/Memory.h"
 #include "../Include/Interface/Std/String.h"
 #include "../Include/Interface/Core/ASCII.h"
-#include "../Include/Pure.h"
+#include "../Include/Interface/Core/Char.h"
+#include "../Include/Std/Memory.h"
+#include "../Pure.h"
 
 /*---- Global Error Message ----*/
 
@@ -108,12 +110,26 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
     }
 
     /* Handle decimal */
-    char* end;
-    int64_t val = strtoll(str, &end, 10);
-    if (*end == '\0')
+    int64_t val = 0;
+    boolean is_negative = pure_false;
+    const char* p = str;
+    
+    if (*p == '-')
     {
-        *ok = true;
-        return (uint64_t)val;
+        is_negative = pure_true;
+        p++;
+    }
+    
+    while (*p >= '0' && *p <= '9')
+    {
+        val = val * 10 + (*p - '0');
+        p++;
+    }
+    
+    if (*p == '\0')
+    {
+        *ok = pure_true;
+        return is_negative ? (uint64_t)(-val) : (uint64_t)val;
     }
 
     return 0;
@@ -809,15 +825,10 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
     err_t err = heap_allocate(code_size, (voidptr_t*)out_code);
     if (err != PURE_OK)
         return err;
-
-    /* Initialize to zero - manual memset replacement */
-    uint64_t init_idx = 0;
-    while (init_idx < code_size)
-    {
-        (*out_code)[init_idx] = 0;
-        init_idx++;
-    }
-
+    
+    /* Initialize to zero using memory_set */
+    memory_set(*out_code, 0, code_size);
+    
     /* Assemble each line */
     for (uint64_t i = 0; i < src->line_count; i++)
     {
