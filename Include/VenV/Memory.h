@@ -33,6 +33,8 @@ typedef enum
 
 /*---- Memory Region ----*/
 
+struct VenVDevice;  /* Forward declaration */
+
 struct VenVMemRegion
 {
     uint64_t base;              /* Base address */
@@ -40,6 +42,7 @@ struct VenVMemRegion
     uint8_t* data;              /* Pointer to actual memory (NULL if not allocated) */
     venv_mem_flags_t flags;     /* Access flags */
     boolean is_mapped;          /* Whether region is mapped */
+    struct VenVDevice* device;  /* Associated device for MMIO regions */
 };
 
 typedef struct VenVMemRegion venv_mem_region_t;
