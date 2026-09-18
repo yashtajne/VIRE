@@ -6,8 +6,8 @@
  * Virtual CPU State and Core Emulation
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "ISA.h"
 
 /*---- CPU State ----*/
@@ -16,10 +16,10 @@ struct VenVCPUState
 {
     /* General-purpose registers (16 registers, 64-bit each) */
     uint64_t regs[VENV_REG_COUNT];
-    
+
     /* Program counter */
     uint64_t pc;
-    
+
     /* Status/flags register */
     struct
     {
@@ -29,18 +29,18 @@ struct VenVCPUState
         uint64_t wp  : 1;   /* Write protect */
         uint64_t reserved: 59;
     } status;
-    
+
     /* Trap/interrupt state */
     uint64_t cause;         /* Exception/interrupt cause */
     uint64_t value;         /* Exception value (e.g., faulting address) */
     uint64_t epc;           /* Exception program counter */
-    
+
     /* Control and Status Registers (CSRs) */
     uint64_t csrs[256];     /* CSR space */
-    
+
     /* Cycle counter (for timing) */
     uint64_t cycle;
-    
+
     /* Instruction counter */
     uint64_t instret;
 };

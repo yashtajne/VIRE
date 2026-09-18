@@ -4,7 +4,7 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Device Architecture
- * 
+ *
  * Design goals:
  * - Well-defined interfaces between CPU and devices
  * - Devices are not tightly coupled to CPU implementation
@@ -12,8 +12,8 @@
  * - Memory-mapped I/O and/or port I/O support
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "ISA.h"
 
 /*---- Device Operations ----*/
@@ -26,16 +26,16 @@ struct VenVDeviceOps
 {
     /* Read from device (MMIO) */
     err_t (*read)(venv_device_t* dev, uint64_t offset, void* data, uint64_t size);
-    
+
     /* Write to device (MMIO) */
     err_t (*write)(venv_device_t* dev, uint64_t offset, const void* data, uint64_t size);
-    
+
     /* Update device state (called periodically) */
     err_t (*update)(venv_device_t* dev, uint64_t cycles);
-    
+
     /* Reset device */
     err_t (*reset)(venv_device_t* dev);
-    
+
     /* Destroy device */
     void  (*destroy)(venv_device_t* dev);
 };
@@ -48,11 +48,11 @@ struct VenVDevice
     const char* name;           /* Device name */
     void* private_data;         /* Device-specific data */
     venv_device_ops_t* ops;     /* Operations table */
-    
+
     /* Interrupt line (for signaling CPU) */
     boolean irq_asserted;
     int irq_line;
-    
+
     /* Back-pointer to VM (for accessing CPU/memory) */
     void* vm;
 };

@@ -4,7 +4,7 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Console Device
- * 
+ *
  * Provides:
  * - Simple character-based console I/O
  * - Guest OS can use as system console
@@ -12,8 +12,8 @@
  * - Memory-mapped interface with optional buffer
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "Device.h"
 
 /*---- Console Configuration ----*/
@@ -36,15 +36,15 @@
 struct VenVConsoleState
 {
     venv_device_t base;         /* Base device structure */
-    
+
     uint8_t* rx_buffer;         /* Input buffer */
     uint64_t rx_head;           /* Read index */
     uint64_t rx_tail;           /* Write index */
     uint64_t rx_size;           /* Buffer size */
-    
+
     uint64_t status;            /* Status register */
     uint64_t control;           /* Control register */
-    
+
     /* Host-side file descriptors for I/O */
     int host_stdin;
     int host_stdout;

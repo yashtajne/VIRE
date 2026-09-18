@@ -4,13 +4,13 @@
 /*
  * VenV - Virtual Environment Engine
  * Main Header File
- * 
+ *
  * A lightweight virtual environment engine that emulates
  * complete computer environments with custom CPU architecture.
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 
 /*---- Version ----*/
 

@@ -4,13 +4,13 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Machine / Environment Abstraction
- * 
+ *
  * This is the main interface for creating and managing
  * virtual environments.
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "CPU.h"
 #include "Memory.h"
 #include "Device.h"
@@ -44,29 +44,29 @@ struct VenVVMState
     char name[VENV_VM_NAME_MAX];
     char config_path[256];      /* Path to config directory */
     char disk_path[256];        /* Path to disk image */
-    
+
     /* CPU and memory */
     venv_cpu_t cpu;
     venv_memory_t memory;
-    
+
     /* Devices */
     venv_timer_t timer;
     venv_console_t console;
     venv_block_t block;
     venv_net_t net;
-    
+
     /* MMIO mappings */
     venv_mmio_mapping_t mmio[VENV_VM_DEVICES_MAX];
     uint64_t mmio_count;
-    
+
     /* Execution state */
     boolean is_running;
     boolean is_paused;
     uint64_t cycles_executed;
-    
+
     /* Interrupt controller state */
     uint64_t pending_irqs;
-    
+
     /* Statistics */
     uint64_t total_cycles;
     uint64_t total_instructions;

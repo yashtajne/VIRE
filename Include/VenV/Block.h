@@ -4,7 +4,7 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Block Device
- * 
+ *
  * Provides:
  * - Virtual disk storage
  * - Backed by file on host (disk.img)
@@ -13,8 +13,8 @@
  * - Memory-mapped interface for commands/data
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "Device.h"
 
 /*---- Block Device Configuration ----*/
@@ -77,13 +77,13 @@ typedef struct VenVBlockRequest venv_block_req_t;
 struct VenVBlockState
 {
     venv_device_t base;         /* Base device structure */
-    
+
     /* Backing file info */
     char* disk_path;            /* Path to disk image file */
     void* disk_file;            /* Host file handle */
     uint64_t disk_size;         /* Size of disk in bytes */
     uint64_t sector_count;      /* Total sectors */
-    
+
     /* Registers */
     uint64_t cmd;
     uint64_t status;
@@ -91,12 +91,12 @@ struct VenVBlockState
     uint64_t count;
     uint64_t data_addr;
     uint64_t result;
-    
+
     /* Request queue */
     venv_block_req_t queue[VENV_BLOCK_QUEUE_SIZE];
     uint64_t queue_head;
     uint64_t queue_tail;
-    
+
     /* Statistics */
     uint64_t read_count;
     uint64_t write_count;
