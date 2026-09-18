@@ -25,17 +25,20 @@ dist/
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
+
+# Build directories
+build/
+dist/
+target/
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Coverage
-.coverage
 coverage/
 htmlcov/
+.coverage
 
 # Testing
 .pytest_cache/

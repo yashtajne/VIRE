@@ -4,15 +4,15 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Timer Device
- * 
+ *
  * Provides:
  * - Programmable timer that generates interrupts
  * - Used by guest OS for scheduling, timekeeping, sleeping
  * - Memory-mapped interface
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "Device.h"
 
 /*---- Timer Configuration ----*/
@@ -38,13 +38,13 @@
 struct VenVTimerState
 {
     venv_device_t base;         /* Base device structure */
-    
+
     uint64_t control;           /* Control register */
     uint64_t prescale;          /* Prescaler value */
     uint64_t compare;           /* Compare value for interrupt */
     uint64_t counter;           /* Current counter */
     uint64_t status;            /* Status register */
-    
+
     uint64_t cycles;            /* Internal cycle counter */
 };
 

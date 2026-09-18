@@ -1,34 +1,8 @@
 #ifndef Process_H
 #define Process_H
 #include "../Self.h"
-
 #include "../../Core/Error.h"
 
-struct _Process
-{
-#if IS_PLATFORM_WINDOWS
-	HANDLE process_handle;
-	HANDLE thread_handle;
-	uint32_t process_id;
-	charseq_t raw_invocation;
-	charseq_t invocation;
-	charseq_t* arguments;
-	uint64_t argument_count;
-	uint8_t exitcode;
-	boolean has_started;
-	boolean has_completed;
-#elif IS_PLATFORM_LINUX
-	uint32_t process_id;
-	charseq_t invocation; // Owned
-	charseq_t* arguments;
-	uint64_t argument_count;
-	uint8_t exitcode;
-	boolean has_started;
-	boolean has_completed;
-#else
-	#error "Not yet Implemented!"
-#endif
-};
 typedef struct _Process process_t;
 
 enum {

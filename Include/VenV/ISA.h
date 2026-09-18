@@ -4,10 +4,10 @@
 /*
  * VenV - Virtual Environment Engine
  * Custom CPU Instruction Set Architecture
- * 
+ *
  * This is a completely new architecture designed for virtual environment emulation.
  * Not based on x86, ARM, RISC-V, MIPS, or any existing architecture.
- * 
+ *
  * Design goals:
  * - Simple and efficient to emulate
  * - Capable of running general-purpose OS (eventually Linux)
@@ -15,8 +15,8 @@
  * - Support for privileged execution, interrupts, exceptions
  */
 
-#include "../Core/Int.h"
-#include "../Core/Byte.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Byte.h"
 
 /*---- Register File ----*/
 
@@ -114,7 +114,7 @@ typedef enum
     VENV_LOAD_UBYTE  = 0x04,  /* Zero-extended byte */
     VENV_LOAD_UHALF  = 0x05,  /* Zero-extended half */
     VENV_LOAD_UWORD  = 0x06,  /* Zero-extended word */
-    
+
     VENV_STORE_BYTE  = 0x08,
     VENV_STORE_HALF  = 0x09,
     VENV_STORE_WORD  = 0x0A,
@@ -169,7 +169,7 @@ typedef enum
     VENV_EXC_INSTR_PAGE     = 11,  /* Instruction page fault */
     VENV_EXC_LOAD_PAGE      = 12,  /* Load page fault */
     VENV_EXC_STORE_PAGE     = 13,  /* Store page fault */
-    
+
     /* Interrupts (have bit 63 set in some conventions) */
     VENV_INTR_TIMER         = 16,  /* Timer interrupt */
     VENV_INTR_EXTERNAL      = 17,  /* External interrupt */

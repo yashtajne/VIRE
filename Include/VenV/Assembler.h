@@ -4,13 +4,13 @@
 /*
  * VenV - Virtual Environment Engine
  * Assembler for VenV ISA
- * 
+ *
  * Converts assembly text to machine code.
  * Simple one-pass assembler for initial implementation.
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "ISA.h"
 
 /*---- Assembly Source ----*/
@@ -35,13 +35,13 @@ struct VenVAsmSource
     venv_asm_line_t* lines;
     uint64_t line_count;
     uint64_t capacity;
-    
+
     /* Symbol table */
     char** symbols;
     uint64_t* symbol_values;
     uint64_t symbol_count;
     uint64_t symbol_capacity;
-    
+
     /* Current address (for .org) */
     uint64_t current_addr;
 };
