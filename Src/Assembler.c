@@ -4,11 +4,11 @@
  */
 
 #include "../Include/VenV/ISA.h"
+#include "../Include/VenV/Assembler.h"
 #include "../Include/Interface/Core/Memory.h"
 #include "../Include/Interface/Core/String.h"
 #include "../Include/Interface/Core/ASCII.h"
 #include "../Include/Interface/Core/Char.h"
-#include "../Include/Std/Memory.h"
 #include "../Pure.h"
 
 /*---- Global Error Message ----*/
@@ -40,16 +40,16 @@ static char* trim_whitespace(char* str)
         return NULL;
 
     /* Trim leading whitespace */
-    while (string_is_space(*str))
+    while (is_space(*str))
         str++;
 
     if (*str == '\0')
         return str;
 
     /* Trim trailing whitespace */
-    uint64_t len = string_length(str);
+    uint64_t len = charseq_countbytes((charseq_t)str);
     char* end = str + len - 1;
-    while (end > str && string_is_space(*end))
+    while (end > str && is_space(*end))
         end--;
 
     *(end + 1) = '\0';
@@ -71,9 +71,9 @@ static int find_register(const char* name)
     }
 
     /* Check aliases */
-    if (string_compare(name, "zero") == 0) return VENV_REG_ZERO;
-    if (string_compare(name, "ra") == 0) return VENV_REG_RA;
-    if (string_compare(name, "sp") == 0) return VENV_REG_SP;
+    if (charseq_equals((charseq_t)name, (charseq_t)"zero", NULL)) return VENV_REG_ZERO;
+    if (charseq_equals((charseq_t)name, (charseq_t)"ra", NULL)) return VENV_REG_RA;
+    if (charseq_equals((charseq_t)name, (charseq_t)"sp", NULL)) return VENV_REG_SP;
 
     return -1;
 }
@@ -110,12 +110,12 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
 
     /* Handle decimal */
     int64_t val = 0;
-    boolean is_negative = pure_false;
+    boolean is_negative = false;
     const char* p = str;
     
     if (*p == '-')
     {
-        is_negative = pure_true;
+        is_negative = true;
         p++;
     }
     
@@ -127,7 +127,7 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
     
     if (*p == '\0')
     {
-        *ok = pure_true;
+        *ok = true;
         return is_negative ? (uint64_t)(-val) : (uint64_t)val;
     }
 
@@ -226,12 +226,12 @@ static err_t add_symbol(venv_asm_source_t* src, const char* name, uint64_t value
     }
 
     /* Copy symbol name */
-    uint64_t name_len = string_length(name);
+    uint64_t name_len = charseq_countbytes((charseq_t)name);
     err_t err = heap_allocate(name_len + 1, (voidptr_t*)&src->symbols[src->symbol_count]);
     if (err != PURE_OK)
         return err;
 
-    string_copy(src->symbols[src->symbol_count], name);
+    memory_copy((voidptr_t)name, (voidptr_t)src->symbols[src->symbol_count], name_len + 1);
     src->symbol_values[src->symbol_count] = value;
     src->symbol_count++;
 
@@ -242,7 +242,7 @@ static uint64_t find_symbol(venv_asm_source_t* src, const char* name)
 {
     for (uint64_t i = 0; i < src->symbol_count; i++)
     {
-        if (string_compare(src->symbols[i], name) == 0)
+        if (charseq_equals(src->symbols[i], (charseq_t)name, NULL))
             return src->symbol_values[i];
     }
     return 0xFFFFFFFFFFFFFFFF;  /* Not found */
@@ -254,13 +254,13 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
         return PURE_ERROR_NULL_POINTER;
 
     /* Make a copy of the text to tokenize */
-    uint64_t text_len = string_length(asm_text);
+    uint64_t text_len = charseq_countbytes((charseq_t)asm_text);
     char* text_copy = NULL;
     err_t err = heap_allocate(text_len + 1, (voidptr_t*)&text_copy);
     if (err != PURE_OK)
         return err;
 
-    string_copy(text_copy, asm_text);
+    memory_copy((voidptr_t)asm_text, (voidptr_t)text_copy, text_len + 1);
 
     /* Parse line by line */
     char* line_start = text_copy;
@@ -318,14 +318,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             line->line_num = line_num;
 
             /* Store original text */
-            uint64_t len = string_length(trimmed);
+            uint64_t len = charseq_countbytes((charseq_t)trimmed);
             err = heap_allocate(len + 1, (voidptr_t*)&line->text);
             if (err != PURE_OK)
             {
                 heap_deallocate(text_copy);
                 return err;
             }
-            string_copy(line->text, trimmed);
+            memory_copy((voidptr_t)trimmed, (voidptr_t)line->text, len + 1);
 
             /* Check for label - manual strchr replacement */
             char* colon = NULL;
@@ -344,14 +344,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 *colon = '\0';
                 char* label_name = trim_whitespace(trimmed);
 
-                uint64_t label_len = string_length(label_name);
+                uint64_t label_len = charseq_countbytes((charseq_t)label_name);
                 err = heap_allocate(label_len + 1, (voidptr_t*)&line->label);
                 if (err != PURE_OK)
                 {
                     heap_deallocate(text_copy);
                     return err;
                 }
-                string_copy(line->label, label_name);
+                memory_copy((voidptr_t)label_name, (voidptr_t)line->label, label_len + 1);
 
                 /* Add symbol */
                 add_symbol(src, label_name, src->current_addr);
@@ -400,7 +400,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                         heap_deallocate(text_copy);
                         return err;
                     }
-                    string_copy_n(line->opcode, token, op_len);
+                    memory_copy((voidptr_t)token, (voidptr_t)line->opcode, op_len + 1);
 
                     /* Parse operands */
                     char* rest = op_end + 1;
@@ -421,12 +421,12 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                             }
                             idx4++;
                         }
-                        char* operand_end = next_comma != NULL ? next_comma : rest + string_length(rest);
+                        char* operand_end = next_comma != NULL ? next_comma : rest + charseq_countbytes((charseq_t)rest);
 
                         if (next_comma != NULL)
                             *next_comma = '\0';
 
-                        uint64_t op_len2 = string_length(rest);
+                        uint64_t op_len2 = charseq_countbytes((charseq_t)rest);
                         if (op_len2 > 0)
                         {
                             err = heap_allocate(op_len2 + 1, (voidptr_t*)&line->operands[line->operand_count]);
@@ -435,7 +435,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                                 heap_deallocate(text_copy);
                                 return err;
                             }
-                            string_copy(line->operands[line->operand_count], rest);
+                            memory_copy((voidptr_t)rest, (voidptr_t)line->operands[line->operand_count], op_len2 + 1);
                             line->operand_count++;
                         }
 
@@ -445,14 +445,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 else
                 {
                     /* Just opcode, no operands */
-                    uint64_t op_len = string_length(trimmed);
+                    uint64_t op_len = charseq_countbytes((charseq_t)trimmed);
                     err = heap_allocate(op_len + 1, (voidptr_t*)&line->opcode);
                     if (err != PURE_OK)
                     {
                         heap_deallocate(text_copy);
                         return err;
                     }
-                    string_copy(line->opcode, trimmed);
+                    memory_copy((voidptr_t)trimmed, (voidptr_t)line->opcode, op_len + 1);
                 }
             }
 
@@ -556,7 +556,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
 
     for (int i = 0; i < num_opcodes; i++)
     {
-        if (string_compare(line->opcode, opcodes[i].mnemonic) == 0)
+        if (charseq_equals((charseq_t)line->opcode, (charseq_t)opcodes[i].mnemonic, NULL))
         {
             found = i;
             break;
