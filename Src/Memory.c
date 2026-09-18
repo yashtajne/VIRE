@@ -181,17 +181,17 @@ err_t venv_memory_fetch_insn(const venv_memory_t* mem, uint64_t addr, venv_insn_
 boolean venv_memory_is_valid_addr(const venv_memory_t* mem, uint64_t addr, uint64_t size, venv_mem_flags_t flags)
 {
     if (mem == NULL)
-        return FALSE;
+        return false;
 
     /* Check for overflow */
     if (addr + size < addr)
-        return FALSE;
+        return false;
 
     /* Check RAM region */
     if (addr < mem->ram_size && addr + size <= mem->ram_size)
     {
         /* TODO: Check protection flags when implemented */
-        return TRUE;
+        return true;
     }
 
     /* Check MMIO regions */
@@ -203,14 +203,14 @@ boolean venv_memory_is_valid_addr(const venv_memory_t* mem, uint64_t addr, uint6
         {
             /* Check access flags */
             if ((flags & VENV_MEM_READ) && !(mem->regions[i].flags & VENV_MEM_READ))
-                return FALSE;
+                return false;
             if ((flags & VENV_MEM_WRITE) && !(mem->regions[i].flags & VENV_MEM_WRITE))
-                return FALSE;
-            return TRUE;
+                return false;
+            return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /*---- MMIO Region Mapping ----*/
@@ -250,7 +250,7 @@ err_t venv_memory_map_region(venv_memory_t* mem, uint64_t base, uint64_t size, v
     region->size = size;
     region->data = NULL;  /* MMIO regions don't have backing data */
     region->flags = flags;
-    region->is_mapped = TRUE;
+    region->is_mapped = true;
 
     mem->region_count++;
 

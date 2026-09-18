@@ -3,7 +3,6 @@
  * Assembler Implementation
  */
 
-#include "../Include/VenV/Assembler.h"
 #include "../Include/VenV/ISA.h"
 #include "../Include/Interface/Core/Memory.h"
 #include "../Include/Interface/Core/String.h"
@@ -75,14 +74,14 @@ static int find_register(const char* name)
     if (string_compare(name, "zero") == 0) return VENV_REG_ZERO;
     if (string_compare(name, "ra") == 0) return VENV_REG_RA;
     if (string_compare(name, "sp") == 0) return VENV_REG_SP;
-    
+
     return -1;
 }
 
 static uint64_t parse_immediate(const char* str, boolean* ok)
 {
-    *ok = pure_false;
-    
+    *ok = false;
+
     if (str == NULL || *str == '\0')
         return 0;
 
@@ -105,7 +104,7 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
                 return 0;  /* Invalid hex digit */
             p++;
         }
-        *ok = pure_true;
+        *ok = true;
         return val;
     }
 
@@ -231,7 +230,7 @@ static err_t add_symbol(venv_asm_source_t* src, const char* name, uint64_t value
     err_t err = heap_allocate(name_len + 1, (voidptr_t*)&src->symbols[src->symbol_count]);
     if (err != PURE_OK)
         return err;
-    
+
     string_copy(src->symbols[src->symbol_count], name);
     src->symbol_values[src->symbol_count] = value;
     src->symbol_count++;
@@ -260,9 +259,9 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
     err_t err = heap_allocate(text_len + 1, (voidptr_t*)&text_copy);
     if (err != PURE_OK)
         return err;
-    
+
     string_copy(text_copy, asm_text);
-    
+
     /* Parse line by line */
     char* line_start = text_copy;
     uint64_t line_num = 1;
@@ -304,9 +303,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
 
                 if (src->lines != NULL)
                 {
-                    /* Manual memcpy replacement */
-                    for (uint64_t i = 0; i < src->line_count * sizeof(venv_asm_line_t); i++)
-                        ((char*)new_lines)[i] = ((char*)src->lines)[i];
+                    memory_copy(src->lines, new_lines, src->line_count * sizeof(venv_asm_line_t));
                     heap_deallocate(src->lines);
                 }
 
@@ -329,7 +326,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 return err;
             }
             string_copy(line->text, trimmed);
-            
+
             /* Check for label - manual strchr replacement */
             char* colon = NULL;
             uint64_t idx2 = 0;
@@ -346,7 +343,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             {
                 *colon = '\0';
                 char* label_name = trim_whitespace(trimmed);
-                
+
                 uint64_t label_len = string_length(label_name);
                 err = heap_allocate(label_len + 1, (voidptr_t*)&line->label);
                 if (err != PURE_OK)
@@ -355,7 +352,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                     return err;
                 }
                 string_copy(line->label, label_name);
-                
+
                 /* Add symbol */
                 add_symbol(src, label_name, src->current_addr);
 
@@ -365,7 +362,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             /* Check for directive */
             if (*trimmed == '.')
             {
-                line->is_directive = pure_true;
+                line->is_directive = true;
                 /* Handle directives like .org, .word, etc. */
                 /* Simplified for now */
             }
@@ -373,7 +370,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             {
                 /* Parse opcode and operands */
                 char* token = trimmed;
-                
+
                 /* Manual strchr replacements */
                 char* space = NULL;
                 char* tab = NULL;
@@ -386,7 +383,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                     else if (token[idx3] == ',' && comma == NULL) comma = &token[idx3];
                     idx3++;
                 }
-                
+
                 /* Find end of opcode */
                 char* op_end = NULL;
                 if (space != NULL && (op_end == NULL || space < op_end)) op_end = space;
@@ -404,14 +401,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                         return err;
                     }
                     string_copy_n(line->opcode, token, op_len);
-                    
+
                     /* Parse operands */
                     char* rest = op_end + 1;
                     while (*rest != '\0' && line->operand_count < 4)
                     {
                         rest = trim_whitespace(rest);
                         if (*rest == '\0') break;
-                        
+
                         /* Manual strchr for comma */
                         char* next_comma = NULL;
                         uint64_t idx4 = 0;
@@ -425,10 +422,10 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                             idx4++;
                         }
                         char* operand_end = next_comma != NULL ? next_comma : rest + string_length(rest);
-                        
+
                         if (next_comma != NULL)
                             *next_comma = '\0';
-                        
+
                         uint64_t op_len2 = string_length(rest);
                         if (op_len2 > 0)
                         {
