@@ -5,7 +5,9 @@
 
 #include "VenV/Memory.h"
 #include "VenV/ISA.h"
-#include "../Std/Memory.h"
+#include "VenV/Device.h"
+#include "../Core/Memory.h"
+#include "../../Pure.h"
 
 /*---- Memory Initialization ----*/
 

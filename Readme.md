@@ -1,12 +1,12 @@
-# VenV - Virtual Environment Engine
+# VIRE - Virtual Isolated Runtime Environment
 
 A lightweight virtual environment engine that emulates complete computer environments with a custom CPU architecture.
 
 ## Overview
 
-VenV (Virtual Environment) is a **virtual hardware emulator**, not an OS-level container like Docker. Each environment contains:
+VIRE (Virtual Isolated Runtime Environment) is a **virtual hardware emulator**, not an OS-level container like Docker. Each environment contains:
 
-- A custom virtual CPU (VenV ISA - not based on x86, ARM, RISC-V, or MIPS)
+- A custom virtual CPU (VIRE ISA - not based on x86, ARM, RISC-V, or MIPS)
 - Virtual RAM with sparse allocation
 - Virtual block device (disk)
 - Virtual console
@@ -20,7 +20,7 @@ The engine provides **virtual hardware**. The guest operating system (eventually
 ```
 HOST
 │
-└── VenV Engine
+└── VIRE Engine
      │
      ├── Virtual CPU (custom ISA)
      ├── Virtual RAM
@@ -43,9 +43,9 @@ HOST
 ```
 /workspace/
 ├── Include/
-│   ├── Core/           # Core runtime (from existing project)
-│   ├── Std/            # Standard library (from existing project)
-│   └── VenV/           # VenV engine headers
+│   ├── Core/           # Core runtime (freestanding C utilities)
+│   ├── Std/            # Standard library interface layer
+│   └── VenV/           # VIRE engine headers
 │       ├── VenV.h      # Main header
 │       ├── ISA.h       # CPU instruction set architecture
 │       ├── CPU.h       # CPU state and operations
@@ -56,20 +56,21 @@ HOST
 │       ├── Block.h     # Virtual block device
 │       ├── Net.h       # Virtual network device
 │       ├── VM.h        # Virtual machine abstraction
-│       └── Assembler.h # Assembler for VenV ISA
+│       └── Assembler.h # Assembler for VIRE ISA
 ├── Src/
 │   ├── CPU.c           # CPU implementation
 │   ├── Memory.c        # Memory implementation
 │   └── Assembler.c     # Assembler implementation
 ├── Test/
-│   └── test_venv.c     # Test program
+│   └── test_vire.c     # Test program
 ├── Environments/       # VM instances (created at runtime)
+├── Pure.h              # Freestanding runtime definitions
 └── Readme.md
 ```
 
 ## Custom CPU ISA
 
-The VenV ISA is a completely new 64-bit architecture designed for efficient emulation:
+The VIRE ISA is a completely new 64-bit architecture designed for efficient emulation:
 
 ### Registers
 - 16 general-purpose 64-bit registers (x0-x15)
@@ -145,36 +146,52 @@ The VenV ISA is a completely new 64-bit architecture designed for efficient emul
 
 ## Building
 
-Requires GCC or Clang with C99 support.
+**Important:** This project uses a freestanding C runtime without libc dependency. All standard library functions are provided by the Interface layer in `Include/Interface/`.
 
-```bash
-# Compile test program
-gcc -I./Include -o test_venv Test/test_venv.c Src/CPU.c Src/Memory.c Src/Assembler.c
+### Prerequisites
+- Clang or GCC with C99 support
+- No external dependencies required
 
-# Run tests
-./test_venv
+### Compile Commands
+
+#### Windows (using Clang)
+```batch
+:: Basic compilation with relative includes
+clang -nostdlib -ffreestanding -o test_vire.exe Test/test_vire.c Src/CPU.c Src/Memory.c Src/Assembler.c
 ```
+
+#### Linux/macOS
+```bash
+# Basic compilation with relative includes
+clang -nostdlib -ffreestanding -o test_vire Test/test_vire.c Src/CPU.c Src/Memory.c Src/Assembler.c
+```
+
+### Notes
+- **No `-I` include flags**: All includes use relative paths from source files
+- **No libc**: Uses `-nostdlib -ffreestanding` flags
+- **Custom runtime**: String/memory functions provided in `Include/Core/String.h`
+- **Boolean types**: Use `TRUE`/`FALSE` from `Pure.h` or `pure_true`/`pure_false`
 
 ## Usage (Future CLI)
 
 ```bash
 # Create a new environment
-venv create myenv --image minimal-linux
+vire create myenv --image minimal-linux
 
 # Start environment
-venv start myenv
+vire start myenv
 
 # Execute command in environment
-venv exec myenv /bin/sh
+vire exec myenv /bin/sh
 
 # Port forwarding
-venv start web --port 8080:80
+vire start web --port 8080:80
 
 # Stop environment
-venv stop myenv
+vire stop myenv
 
 # Destroy environment
-venv destroy myenv
+vire destroy myenv
 ```
 
 ## Design Principles
@@ -188,6 +205,22 @@ venv destroy myenv
 4. **Clear boundaries** - Well-defined interfaces between CPU, memory, and devices.
 
 5. **Extensible** - Designed to eventually support full Linux virtualization.
+
+6. **No libc dependency** - All standard library functions are implemented in the Interface layer for complete control and portability.
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yashtajne/VIRE.git
+cd VIRE
+
+# Build the test program
+clang -nostdlib -ffreestanding -o test_vire Test/test_vire.c Src/CPU.c Src/Memory.c Src/Assembler.c
+
+# Run tests
+./test_vire
+```
 
 ## License
 
