@@ -10,13 +10,6 @@
 #include "../Include/Interface/Core/ASCII.h"
 #include "../Include/Pure.h"
 
-static inline char *strchr(const char *s, int c) {
-    char ch = (char)c;
-    while (*s && *s != ch)
-        s++;
-    return (*s == ch) ? (char *)s : NULL;
-}
-
 /*---- Global Error Message ----*/
 
 static char g_asm_error[256] = {0};
