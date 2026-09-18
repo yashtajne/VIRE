@@ -6,6 +6,7 @@
 #include "Error.h"
 
 err_t memory_copy (voidptr_t from, voidptr_t to, uint64_t size);
+err_t memory_set  (voidptr_t start, byte_t c, uint64_t n);
 
 static inline voidptr_t memory_alignPointer   (voidptr_t ptr, uint64_t alignment);
 static inline uint64_t  memory_alignForward   (uint64_t address, uint64_t alignment);

@@ -22,6 +22,9 @@ boolean charseq_find     (charseq_t, charseq_t subseq, uint64_t* position, err_t
 
 // static inline void charseq_replace (charseq_t this, charseq_t target, charseq_t replacement);
 
+// charseq_t charseq_firstSubSequence (charseq_t seq, charseq_t subseq, err_t* occured); <-- not implemented yet!!!
+charseq_t charseq_firstOccurence   (charseq_t seq, char_t c, err_t* occured);
+
 static inline boolean
 is_space(char character)
 {
