@@ -4,20 +4,20 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Network Interface Card (NIC)
- * 
+ *
  * Provides:
  * - Virtual network interface for guest OS
  * - Guest OS provides TCP/IP stack, sockets, etc.
  * - Engine only emulates hardware device
  * - Host-side bridge connects to real network
  * - Supports port forwarding
- * 
+ *
  * Design: Simple descriptor-based interface
  * (Similar to virtio-net but simplified)
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "Device.h"
 
 /*---- NIC Configuration ----*/
@@ -84,7 +84,7 @@ typedef struct VenVNetPktHeader venv_net_pkt_hdr_t;
 struct VenVNetState
 {
     venv_device_t base;         /* Base device structure */
-    
+
     /* Device state */
     uint64_t control;
     uint64_t status;
@@ -93,20 +93,20 @@ struct VenVNetState
     uint64_t rx_idx;
     uint64_t tx_idx;
     uint64_t int_mask;
-    
+
     /* MAC address */
     uint8_t mac[VENV_NET_MAC_LEN];
-    
+
     /* Descriptor rings (cached copies) */
     struct VenVNetDesc rx_queue[VENV_NET_RX_QUEUE_SIZE];
     struct VenVNetDesc tx_queue[VENV_NET_TX_QUEUE_SIZE];
-    
+
     /* Queue indices */
     uint64_t rx_avail;          /* Available RX descriptors */
     uint64_t rx_used;           /* Used RX descriptors */
     uint64_t tx_avail;          /* Available TX descriptors */
     uint64_t tx_used;           /* Used TX descriptors */
-    
+
     /* Statistics */
     uint64_t rx_packets;
     uint64_t rx_bytes;
@@ -115,7 +115,7 @@ struct VenVNetState
     uint64_t rx_errors;
     uint64_t tx_errors;
     uint64_t dropped;
-    
+
     /* Host-side networking */
     void* host_nic;             /* Host network interface handle */
     boolean link_up;

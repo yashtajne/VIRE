@@ -4,7 +4,7 @@
 /*
  * VenV - Virtual Environment Engine
  * Virtual Memory Subsystem
- * 
+ *
  * Design goals:
  * - Sparse/lazy allocation to minimize host memory usage
  * - Efficient access for the hot execution path
@@ -12,8 +12,8 @@
  * - Extensible for future MMU features
  */
 
-#include "../Core/Int.h"
-#include "../Core/Error.h"
+#include "../Interface/Core/Int.h"
+#include "../Interface/Core/Error.h"
 #include "ISA.h"
 
 /*---- Memory Configuration ----*/
@@ -51,15 +51,15 @@ struct VenVMemoryContext
     /* Physical memory backing */
     uint8_t* ram;               /* Main RAM pointer */
     uint64_t ram_size;          /* Total RAM size */
-    
+
     /* Memory regions (for MMIO and special mappings) */
     venv_mem_region_t* regions;
     uint64_t region_count;
     uint64_t region_capacity;
-    
+
     /* Page tables (future: for full MMU emulation) */
     void* page_tables;
-    
+
     /* Statistics */
     uint64_t pages_allocated;
     uint64_t read_count;
@@ -145,7 +145,7 @@ static inline uint8_t* venv_memory_get_ram_ptr(venv_memory_t* mem, uint64_t addr
 {
     if (addr < mem->ram_size && mem->ram != NULL)
         return mem->ram + addr;
-    return NULL;
+    return (uint8_t*)NULL;
 }
 
 #endif /* VenVMemory_h */

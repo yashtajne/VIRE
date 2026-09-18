@@ -3,10 +3,10 @@
  * Assembler Implementation
  */
 
-#include "VenV/Assembler.h"
-#include "../Std/Memory.h"
-#include "../Std/String.h"
-#include "../Std/IO.h"
+#include "../Include/VenV/Assembler.h"
+#include "../Include/Interface/Std/Memory.h"
+#include "../Include/Interface/Std/String.h"
+#include "../Include/Interface/Std/IO.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -32,19 +32,19 @@ static char* trim_whitespace(char* str)
 {
     if (str == NULL)
         return NULL;
-    
+
     /* Trim leading whitespace */
     while (isspace(*str))
         str++;
-    
+
     if (*str == '\0')
         return str;
-    
+
     /* Trim trailing whitespace */
     char* end = str + strlen(str) - 1;
     while (end > str && isspace(*end))
         end--;
-    
+
     *(end + 1) = '\0';
     return str;
 }
@@ -53,7 +53,7 @@ static int find_register(const char* name)
 {
     if (name == NULL)
         return -1;
-    
+
     /* Check for numeric register (x0-x15) */
     if (name[0] == 'x' || name[0] == 'r')
     {
@@ -61,22 +61,22 @@ static int find_register(const char* name)
         if (reg >= 0 && reg < VENV_REG_COUNT)
             return reg;
     }
-    
+
     /* Check aliases */
     if (strcmp(name, "zero") == 0) return VENV_REG_ZERO;
     if (strcmp(name, "ra") == 0) return VENV_REG_RA;
     if (strcmp(name, "sp") == 0) return VENV_REG_SP;
-    
+
     return -1;
 }
 
 static uint64_t parse_immediate(const char* str, boolean* success)
 {
     *success = FALSE;
-    
+
     if (str == NULL || *str == '\0')
         return 0;
-    
+
     /* Handle hex */
     if (strncmp(str, "0x", 2) == 0 || strncmp(str, "0X", 2) == 0)
     {
@@ -88,7 +88,7 @@ static uint64_t parse_immediate(const char* str, boolean* success)
             return val;
         }
     }
-    
+
     /* Handle decimal */
     char* end;
     int64_t val = strtoll(str, &end, 10);
@@ -97,7 +97,7 @@ static uint64_t parse_immediate(const char* str, boolean* success)
         *success = TRUE;
         return (uint64_t)val;
     }
-    
+
     return 0;
 }
 
@@ -107,7 +107,7 @@ err_t venv_asm_init(venv_asm_source_t* src)
 {
     if (src == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     src->lines = NULL;
     src->line_count = 0;
     src->capacity = 0;
@@ -116,7 +116,7 @@ err_t venv_asm_init(venv_asm_source_t* src)
     src->symbol_count = 0;
     src->symbol_capacity = 0;
     src->current_addr = 0;
-    
+
     return PURE_OK;
 }
 
@@ -124,7 +124,7 @@ void venv_asm_destroy(venv_asm_source_t* src)
 {
     if (src == NULL)
         return;
-    
+
     /* Free lines */
     if (src->lines != NULL)
     {
@@ -137,14 +137,14 @@ void venv_asm_destroy(venv_asm_source_t* src)
                 heap_deallocate(line->label);
             if (line->opcode != NULL)
                 heap_deallocate(line->opcode);
-            
+
             for (int j = 0; j < line->operand_count; j++)
                 if (line->operands[j] != NULL)
                     heap_deallocate(line->operands[j]);
         }
         heap_deallocate(src->lines);
     }
-    
+
     /* Free symbols */
     if (src->symbols != NULL)
     {
@@ -165,17 +165,17 @@ static err_t add_symbol(venv_asm_source_t* src, const char* name, uint64_t value
         uint64_t new_cap = src->symbol_capacity == 0 ? 32 : src->symbol_capacity * 2;
         char** new_symbols = NULL;
         uint64_t* new_values = NULL;
-        
+
         err_t err = heap_allocate(new_cap * sizeof(char*), (voidptr_t*)&new_symbols);
         if (err != PURE_OK) return err;
-        
+
         err = heap_allocate(new_cap * sizeof(uint64_t), (voidptr_t*)&new_values);
         if (err != PURE_OK)
         {
             heap_deallocate(new_symbols);
             return err;
         }
-        
+
         if (src->symbols != NULL)
         {
             for (uint64_t i = 0; i < src->symbol_count; i++)
@@ -186,22 +186,22 @@ static err_t add_symbol(venv_asm_source_t* src, const char* name, uint64_t value
             heap_deallocate(src->symbols);
             heap_deallocate(src->symbol_values);
         }
-        
+
         src->symbols = new_symbols;
         src->symbol_values = new_values;
         src->symbol_capacity = new_cap;
     }
-    
+
     /* Copy symbol name */
     uint64_t name_len = strlen(name);
     err_t err = heap_allocate(name_len + 1, (voidptr_t*)&src->symbols[src->symbol_count]);
     if (err != PURE_OK)
         return err;
-    
+
     strcpy(src->symbols[src->symbol_count], name);
     src->symbol_values[src->symbol_count] = value;
     src->symbol_count++;
-    
+
     return PURE_OK;
 }
 
@@ -219,30 +219,30 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
 {
     if (src == NULL || asm_text == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     /* Make a copy of the text to tokenize */
     uint64_t text_len = strlen(asm_text);
     char* text_copy = NULL;
     err_t err = heap_allocate(text_len + 1, (voidptr_t*)&text_copy);
     if (err != PURE_OK)
         return err;
-    
+
     strcpy(text_copy, asm_text);
-    
+
     /* Parse line by line */
     char* line_start = text_copy;
     uint64_t line_num = 1;
-    
+
     while (line_start != NULL && *line_start != '\0')
     {
         /* Find end of line */
         char* line_end = strchr(line_start, '\n');
         if (line_end != NULL)
             *line_end = '\0';
-        
+
         /* Trim whitespace */
         char* trimmed = trim_whitespace(line_start);
-        
+
         /* Skip empty lines and comments */
         if (*trimmed != '\0' && *trimmed != '#' && *trimmed != ';')
         {
@@ -257,21 +257,21 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                     heap_deallocate(text_copy);
                     return err;
                 }
-                
+
                 if (src->lines != NULL)
                 {
                     memcpy(new_lines, src->lines, src->line_count * sizeof(venv_asm_line_t));
                     heap_deallocate(src->lines);
                 }
-                
+
                 src->lines = new_lines;
                 src->capacity = new_cap;
             }
-            
+
             venv_asm_line_t* line = &src->lines[src->line_count];
             memset(line, 0, sizeof(venv_asm_line_t));
             line->line_num = line_num;
-            
+
             /* Store original text */
             uint64_t len = strlen(trimmed);
             err = heap_allocate(len + 1, (voidptr_t*)&line->text);
@@ -281,14 +281,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 return err;
             }
             strcpy(line->text, trimmed);
-            
+
             /* Check for label */
             char* colon = strchr(trimmed, ':');
             if (colon != NULL)
             {
                 *colon = '\0';
                 char* label_name = trim_whitespace(trimmed);
-                
+
                 uint64_t label_len = strlen(label_name);
                 err = heap_allocate(label_len + 1, (voidptr_t*)&line->label);
                 if (err != PURE_OK)
@@ -297,13 +297,13 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                     return err;
                 }
                 strcpy(line->label, label_name);
-                
+
                 /* Add symbol */
                 add_symbol(src, label_name, src->current_addr);
-                
+
                 trimmed = trim_whitespace(colon + 1);
             }
-            
+
             /* Check for directive */
             if (*trimmed == '.')
             {
@@ -318,16 +318,16 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 char* space = strchr(token, ' ');
                 char* tab = strchr(token, '\t');
                 char* comma = strchr(token, ',');
-                
+
                 /* Find end of opcode */
                 char* op_end = NULL;
                 if (space != NULL && (op_end == NULL || space < op_end)) op_end = space;
                 if (tab != NULL && (op_end == NULL || tab < op_end)) op_end = tab;
-                
+
                 if (op_end != NULL)
                 {
                     *op_end = '\0';
-                    
+
                     uint64_t op_len = op_end - token;
                     err = heap_allocate(op_len + 1, (voidptr_t*)&line->opcode);
                     if (err != PURE_OK)
@@ -336,20 +336,20 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                         return err;
                     }
                     strncpy(line->opcode, token, op_len);
-                    
+
                     /* Parse operands */
                     char* rest = op_end + 1;
                     while (*rest != '\0' && line->operand_count < 4)
                     {
                         rest = trim_whitespace(rest);
                         if (*rest == '\0') break;
-                        
+
                         char* next_comma = strchr(rest, ',');
                         char* operand_end = next_comma != NULL ? next_comma : rest + strlen(rest);
-                        
+
                         if (next_comma != NULL)
                             *next_comma = '\0';
-                        
+
                         uint64_t op_len = strlen(rest);
                         if (op_len > 0)
                         {
@@ -362,7 +362,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                             strcpy(line->operands[line->operand_count], rest);
                             line->operand_count++;
                         }
-                        
+
                         rest = next_comma != NULL ? next_comma + 1 : operand_end;
                     }
                 }
@@ -379,14 +379,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                     strcpy(line->opcode, trimmed);
                 }
             }
-            
+
             /* Advance address */
             if (!line->is_directive)
                 src->current_addr += 4;  /* Each instruction is 4 bytes */
-            
+
             src->line_count++;
         }
-        
+
         /* Move to next line */
         if (line_end != NULL)
         {
@@ -398,7 +398,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             break;
         }
     }
-    
+
     heap_deallocate(text_copy);
     return PURE_OK;
 }
@@ -407,7 +407,7 @@ err_t venv_asm_load_file(venv_asm_source_t* src, const char* filename)
 {
     if (src == NULL || filename == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     /* TODO: Implement file loading */
     set_error("File loading not yet implemented");
     return PURE_ERROR_FILE_READ_FAILED;
@@ -419,9 +419,9 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
 {
     if (line->opcode == NULL)
         return PURE_ERROR_INVALID_ARGUMENT;
-    
+
     venv_insn_t insn = 0;
-    
+
     /* Map mnemonic to opcode */
     struct { const char* mnemonic; uint8_t opcode; uint8_t func; } opcodes[] = {
         {"lui",     VENV_OP_LUI,     0},
@@ -474,10 +474,10 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
         {"ebreak",  VENV_OP_TRAP,    VENV_TRAP_EBREAK},
         {"swi",     VENV_OP_TRAP,    VENV_TRAP_INT},
     };
-    
+
     int num_opcodes = sizeof(opcodes) / sizeof(opcodes[0]);
     int found = -1;
-    
+
     for (int i = 0; i < num_opcodes; i++)
     {
         if (strcmp(line->opcode, opcodes[i].mnemonic) == 0)
@@ -486,16 +486,16 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             break;
         }
     }
-    
+
     if (found < 0)
     {
         set_error("Unknown opcode: %s", line->opcode);
         return PURE_ERROR_INVALID_ARGUMENT;
     }
-    
+
     uint8_t opcode = opcodes[found].opcode;
     uint8_t func = opcodes[found].func;
-    
+
     /* Encode based on instruction type */
     switch (opcode)
     {
@@ -503,77 +503,77 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
         {
             if (line->operand_count < 2)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd = find_register(line->operands[0]);
             boolean ok;
             uint64_t imm = parse_immediate(line->operands[1], &ok);
             if (rd < 0 || !ok)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = (imm >> 12) << VENV_IMM20_SHIFT;
             insn |= (rd & VENV_RD_MASK) << VENV_RD_SHIFT;
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_AUIPC:
         case VENV_OP_JAL:
         {
             if (line->operand_count < 2)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd = find_register(line->operands[0]);
-            
+
             /* Second operand can be register or immediate/label */
             int rs = find_register(line->operands[1]);
             boolean ok;
             uint64_t imm = parse_immediate(line->operands[1], &ok);
-            
+
             if (rs >= 0)
                 imm = rs;  /* Use register value as offset (unusual but allowed) */
-            
+
             if (rd < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = ((imm >> 12) & VENV_IMM20_MASK) << VENV_IMM20_SHIFT;
             insn |= (rd & VENV_RD_MASK) << VENV_RD_SHIFT;
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_JALR:
         {
             if (line->operand_count < 2)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd = find_register(line->operands[0]);
             int rs1 = find_register(line->operands[1]);
             int64_t imm = 0;
-            
+
             if (line->operand_count >= 3)
             {
                 boolean ok;
                 imm = (int64_t)parse_immediate(line->operands[2], &ok);
             }
-            
+
             if (rd < 0 || rs1 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = (imm & VENV_IMM12_MASK) << VENV_IMM12_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
             insn |= (rd & VENV_RD_MASK) << VENV_RD_SHIFT;
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_BR:
         {
             if (line->operand_count < 3)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rs1 = find_register(line->operands[0]);
             int rs2 = find_register(line->operands[1]);
-            
+
             /* Third operand is target (label or immediate) */
             boolean ok;
             uint64_t target = parse_immediate(line->operands[2], &ok);
@@ -582,10 +582,10 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
                 /* It's a label - will need fixup */
                 target = 0;  /* Placeholder */
             }
-            
+
             if (rs1 < 0 || rs2 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = func << VENV_FUNC_SHIFT;
             insn |= (rs2 & VENV_RS2_MASK) << VENV_RS2_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
@@ -593,22 +593,22 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_LD:
         case VENV_OP_ST:
         {
             if (line->operand_count < 2)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd_or_rs2;
             int rs1;
             int64_t imm = 0;
-            
+
             if (opcode == VENV_OP_LD)
             {
                 /* ld rd, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 /* Parse offset(rs1) format */
                 char* paren = strchr(line->operands[1], '(');
                 if (paren != NULL)
@@ -617,7 +617,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
                     boolean ok;
                     imm = (int64_t)parse_immediate(line->operands[1], &ok);
                     if (!ok) imm = 0;
-                    
+
                     rs1 = find_register(paren + 1);
                 }
                 else
@@ -629,7 +629,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* sd rs2, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 char* paren = strchr(line->operands[1], '(');
                 if (paren != NULL)
                 {
@@ -637,7 +637,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
                     boolean ok;
                     imm = (int64_t)parse_immediate(line->operands[1], &ok);
                     if (!ok) imm = 0;
-                    
+
                     rs1 = find_register(paren + 1);
                 }
                 else
@@ -645,10 +645,10 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
                     rs1 = find_register(line->operands[1]);
                 }
             }
-            
+
             if (rd_or_rs2 < 0 || rs1 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = func << VENV_FUNC_SHIFT;
             insn |= (rd_or_rs2 & VENV_RS2_MASK) << VENV_RS2_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
@@ -656,21 +656,21 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_OPIMM:
         {
             if (line->operand_count < 3)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd = find_register(line->operands[0]);
             int rs1 = find_register(line->operands[1]);
             boolean ok;
             uint64_t imm = parse_immediate(line->operands[2], &ok);
             if (!ok) imm = 0;
-            
+
             if (rd < 0 || rs1 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = func << VENV_FUNC_SHIFT;
             insn |= (imm & VENV_IMM12_MASK) << VENV_IMM12_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
@@ -678,19 +678,19 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_OP:
         {
             if (line->operand_count < 3)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             int rd = find_register(line->operands[0]);
             int rs1 = find_register(line->operands[1]);
             int rs2 = find_register(line->operands[2]);
-            
+
             if (rd < 0 || rs1 < 0 || rs2 < 0)
                 return PURE_ERROR_INVALID_ARGUMENT;
-            
+
             insn = func << VENV_FUNC_SHIFT;
             insn |= (rs2 & VENV_RS2_MASK) << VENV_RS2_SHIFT;
             insn |= (rs1 & VENV_RS1_MASK) << VENV_RS1_SHIFT;
@@ -698,7 +698,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         case VENV_OP_MISC:
         case VENV_OP_TRAP:
         {
@@ -706,11 +706,11 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             insn |= opcode << VENV_OPCODE_SHIFT;
             break;
         }
-        
+
         default:
             return PURE_ERROR_INVALID_ARGUMENT;
     }
-    
+
     *out_insn = insn;
     return PURE_OK;
 }
@@ -719,23 +719,23 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
 {
     if (src == NULL || out_code == NULL || out_size == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     /* Calculate total size */
     uint64_t code_size = src->line_count * 4;
-    
+
     /* Allocate output buffer */
     err_t err = heap_allocate(code_size, (voidptr_t*)out_code);
     if (err != PURE_OK)
         return err;
-    
+
     /* Initialize to zero */
     memset(*out_code, 0, code_size);
-    
+
     /* Assemble each line */
     for (uint64_t i = 0; i < src->line_count; i++)
     {
         venv_asm_line_t* line = &src->lines[i];
-        
+
         if (line->opcode != NULL && !line->is_directive)
         {
             venv_insn_t insn;
@@ -746,7 +746,7 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
                 *out_code = NULL;
                 return err;
             }
-            
+
             /* Write instruction (little-endian) */
             uint8_t* ptr = *out_code + (i * 4);
             ptr[0] = insn & 0xFF;
@@ -755,7 +755,7 @@ err_t venv_asm_assemble(venv_asm_source_t* src, uint8_t** out_code, uint64_t* ou
             ptr[3] = (insn >> 24) & 0xFF;
         }
     }
-    
+
     *out_size = code_size;
     return PURE_OK;
 }
@@ -764,21 +764,21 @@ err_t venv_asm_assemble_text(const char* asm_text, uint8_t** out_code, uint64_t*
 {
     if (asm_text == NULL || out_code == NULL || out_size == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     venv_asm_source_t src;
     err_t err = venv_asm_init(&src);
     if (err != PURE_OK)
         return err;
-    
+
     err = venv_asm_parse(&src, asm_text);
     if (err != PURE_OK)
     {
         venv_asm_destroy(&src);
         return err;
     }
-    
+
     err = venv_asm_assemble(&src, out_code, out_size);
-    
+
     venv_asm_destroy(&src);
     return err;
 }
@@ -787,7 +787,7 @@ err_t venv_asm_assemble_file(const char* filename, uint8_t** out_code, uint64_t*
 {
     if (filename == NULL || out_code == NULL || out_size == NULL)
         return PURE_ERROR_NULL_POINTER;
-    
+
     /* TODO: Implement file assembly */
     set_error("File assembly not yet implemented");
     return PURE_ERROR_FILE_READ_FAILED;
