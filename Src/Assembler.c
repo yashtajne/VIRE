@@ -4,8 +4,9 @@
  */
 
 #include "../Include/VenV/ISA.h"
-#include "../Include/Interface/Core/Memory.h"
-#include "../Include/Interface/Core/String.h"
+#include "../Include/VenV/Assembler.h"
+#include "../Include/Interface/Std/Memory.h"
+#include "../Include/Interface/Std/String.h"
 #include "../Include/Interface/Core/ASCII.h"
 #include "../Include/Interface/Core/Char.h"
 #include "../Include/Std/Memory.h"
@@ -684,7 +685,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* ld rd, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 /* Parse offset(rs1) format - manual strchr replacement */
                 char* paren = NULL;
                 uint64_t idx_p = 0;
@@ -715,7 +716,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* sd rs2, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 /* Parse offset(rs1) format - manual strchr replacement */
                 char* paren = NULL;
                 uint64_t idx_p = 0;
