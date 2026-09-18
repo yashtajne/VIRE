@@ -684,7 +684,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* ld rd, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 /* Parse offset(rs1) format - manual strchr replacement */
                 char* paren = NULL;
                 uint64_t idx_p = 0;
@@ -715,7 +715,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
             {
                 /* sd rs2, offset(rs1) */
                 rd_or_rs2 = find_register(line->operands[0]);
-                
+
                 /* Parse offset(rs1) format - manual strchr replacement */
                 char* paren = NULL;
                 uint64_t idx_p = 0;

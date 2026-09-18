@@ -216,7 +216,7 @@ git clone https://github.com/yashtajne/VIRE.git
 cd VIRE
 
 # Build the test program
-clang -nostdlib -ffreestanding -o test_vire Test/test_vire.c Src/CPU.c Src/Memory.c Src/Assembler.c
+clang -nostdlib -ffreestanding -o test_vire Test/test_venv.c Src/CPU.c Src/Memory.c Src/Assembler.c
 
 # Run tests
 ./test_vire
