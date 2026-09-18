@@ -3,22 +3,28 @@
  * Assembler Implementation
  */
 
-#include "../Include/VenV/Assembler.h"
-#include "../Include/Interface/Std/Memory.h"
-#include "../Include/Interface/Std/String.h"
-#include "../Include/Interface/Std/IO.h"
-#include <string.h>
-#include <ctype.h>
+#include "VenV/Assembler.h"
+#include "VenV/ISA.h"
+#include "../Core/Memory.h"
+#include "../Core/String.h"
+#include "../Core/ASCII.h"
+#include "../Core/Char.h"
+#include "../../Pure.h"
 
 /*---- Global Error Message ----*/
 
 static char g_asm_error[256] = {0};
 
-static void set_error(const char* fmt, ...)
+static void set_error(const char* fmt)
 {
-    /* Simple error setting - in production would use proper formatting */
-    strncpy(g_asm_error, fmt, sizeof(g_asm_error) - 1);
-    g_asm_error[sizeof(g_asm_error) - 1] = '\0';
+    /* Simple error setting - copy string manually */
+    uint64_t i = 0;
+    while (i < sizeof(g_asm_error) - 1 && fmt[i] != '\0')
+    {
+        g_asm_error[i] = fmt[i];
+        i++;
+    }
+    g_asm_error[i] = '\0';
 }
 
 const char* venv_asm_get_error(void)
@@ -34,15 +40,16 @@ static char* trim_whitespace(char* str)
         return NULL;
 
     /* Trim leading whitespace */
-    while (isspace(*str))
+    while (string_is_space(*str))
         str++;
 
     if (*str == '\0')
         return str;
 
     /* Trim trailing whitespace */
-    char* end = str + strlen(str) - 1;
-    while (end > str && isspace(*end))
+    uint64_t len = string_length(str);
+    char* end = str + len - 1;
+    while (end > str && string_is_space(*end))
         end--;
 
     *(end + 1) = '\0';
@@ -64,22 +71,22 @@ static int find_register(const char* name)
     }
 
     /* Check aliases */
-    if (strcmp(name, "zero") == 0) return VENV_REG_ZERO;
-    if (strcmp(name, "ra") == 0) return VENV_REG_RA;
-    if (strcmp(name, "sp") == 0) return VENV_REG_SP;
-
+    if (string_compare(name, "zero") == 0) return VENV_REG_ZERO;
+    if (string_compare(name, "ra") == 0) return VENV_REG_RA;
+    if (string_compare(name, "sp") == 0) return VENV_REG_SP;
+    
     return -1;
 }
 
 static uint64_t parse_immediate(const char* str, boolean* ok)
 {
-    *success = FALSE;
-
+    *ok = pure_false;
+    
     if (str == NULL || *str == '\0')
         return 0;
 
     /* Handle hex */
-    if (strncmp(str, "0x", 2) == 0 || strncmp(str, "0X", 2) == 0)
+    if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
     {
         /* Parse hex manually */
         const char* p = str + 2;
@@ -97,7 +104,7 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
                 return 0;  /* Invalid hex digit */
             p++;
         }
-        *ok = TRUE;
+        *ok = pure_true;
         return val;
     }
 
@@ -106,7 +113,7 @@ static uint64_t parse_immediate(const char* str, boolean* ok)
     int64_t val = strtoll(str, &end, 10);
     if (*end == '\0')
     {
-        *ok = TRUE;
+        *ok = pure_true;
         return (uint64_t)val;
     }
 
@@ -205,12 +212,12 @@ static err_t add_symbol(venv_asm_source_t* src, const char* name, uint64_t value
     }
 
     /* Copy symbol name */
-    uint64_t name_len = strlen(name);
+    uint64_t name_len = string_length(name);
     err_t err = heap_allocate(name_len + 1, (voidptr_t*)&src->symbols[src->symbol_count]);
     if (err != PURE_OK)
         return err;
-
-    strcpy(src->symbols[src->symbol_count], name);
+    
+    string_copy(src->symbols[src->symbol_count], name);
     src->symbol_values[src->symbol_count] = value;
     src->symbol_count++;
 
@@ -221,7 +228,7 @@ static uint64_t find_symbol(venv_asm_source_t* src, const char* name)
 {
     for (uint64_t i = 0; i < src->symbol_count; i++)
     {
-        if (strcmp(src->symbols[i], name) == 0)
+        if (string_compare(src->symbols[i], name) == 0)
             return src->symbol_values[i];
     }
     return 0xFFFFFFFFFFFFFFFF;  /* Not found */
@@ -233,14 +240,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
         return PURE_ERROR_NULL_POINTER;
 
     /* Make a copy of the text to tokenize */
-    uint64_t text_len = strlen(asm_text);
+    uint64_t text_len = string_length(asm_text);
     char* text_copy = NULL;
     err_t err = heap_allocate(text_len + 1, (voidptr_t*)&text_copy);
     if (err != PURE_OK)
         return err;
-
-    strcpy(text_copy, asm_text);
-
+    
+    string_copy(text_copy, asm_text);
+    
     /* Parse line by line */
     char* line_start = text_copy;
     uint64_t line_num = 1;
@@ -248,7 +255,17 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
     while (line_start != NULL && *line_start != '\0')
     {
         /* Find end of line */
-        char* line_end = strchr(line_start, '\n');
+        char* line_end = NULL;
+        uint64_t idx = 0;
+        while (line_start[idx] != '\0')
+        {
+            if (line_start[idx] == '\n')
+            {
+                line_end = &line_start[idx];
+                break;
+            }
+            idx++;
+        }
         if (line_end != NULL)
             *line_end = '\0';
 
@@ -281,35 +298,47 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             }
 
             venv_asm_line_t* line = &src->lines[src->line_count];
-            memset(line, 0, sizeof(venv_asm_line_t));
+            /* Manual memset replacement */
+            for (uint64_t i = 0; i < sizeof(venv_asm_line_t); i++)
+                ((char*)line)[i] = 0;
             line->line_num = line_num;
 
             /* Store original text */
-            uint64_t len = strlen(trimmed);
+            uint64_t len = string_length(trimmed);
             err = heap_allocate(len + 1, (voidptr_t*)&line->text);
             if (err != PURE_OK)
             {
                 heap_deallocate(text_copy);
                 return err;
             }
-            strcpy(line->text, trimmed);
-
-            /* Check for label */
-            char* colon = strchr(trimmed, ':');
+            string_copy(line->text, trimmed);
+            
+            /* Check for label - manual strchr replacement */
+            char* colon = NULL;
+            uint64_t idx2 = 0;
+            while (trimmed[idx2] != '\0')
+            {
+                if (trimmed[idx2] == ':')
+                {
+                    colon = &trimmed[idx2];
+                    break;
+                }
+                idx2++;
+            }
             if (colon != NULL)
             {
                 *colon = '\0';
                 char* label_name = trim_whitespace(trimmed);
-
-                uint64_t label_len = strlen(label_name);
+                
+                uint64_t label_len = string_length(label_name);
                 err = heap_allocate(label_len + 1, (voidptr_t*)&line->label);
                 if (err != PURE_OK)
                 {
                     heap_deallocate(text_copy);
                     return err;
                 }
-                strcpy(line->label, label_name);
-
+                string_copy(line->label, label_name);
+                
                 /* Add symbol */
                 add_symbol(src, label_name, src->current_addr);
 
@@ -319,7 +348,7 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             /* Check for directive */
             if (*trimmed == '.')
             {
-                line->is_directive = TRUE;
+                line->is_directive = pure_true;
                 /* Handle directives like .org, .word, etc. */
                 /* Simplified for now */
             }
@@ -327,10 +356,20 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
             {
                 /* Parse opcode and operands */
                 char* token = trimmed;
-                char* space = strchr(token, ' ');
-                char* tab = strchr(token, '\t');
-                char* comma = strchr(token, ',');
-
+                
+                /* Manual strchr replacements */
+                char* space = NULL;
+                char* tab = NULL;
+                char* comma = NULL;
+                uint64_t idx3 = 0;
+                while (token[idx3] != '\0')
+                {
+                    if (token[idx3] == ' ' && space == NULL) space = &token[idx3];
+                    else if (token[idx3] == '\t' && tab == NULL) tab = &token[idx3];
+                    else if (token[idx3] == ',' && comma == NULL) comma = &token[idx3];
+                    idx3++;
+                }
+                
                 /* Find end of opcode */
                 char* op_end = NULL;
                 if (space != NULL && (op_end == NULL || space < op_end)) op_end = space;
@@ -347,31 +386,42 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                         heap_deallocate(text_copy);
                         return err;
                     }
-                    strncpy(line->opcode, token, op_len);
-
+                    string_copy_n(line->opcode, token, op_len);
+                    
                     /* Parse operands */
                     char* rest = op_end + 1;
                     while (*rest != '\0' && line->operand_count < 4)
                     {
                         rest = trim_whitespace(rest);
                         if (*rest == '\0') break;
-
-                        char* next_comma = strchr(rest, ',');
-                        char* operand_end = next_comma != NULL ? next_comma : rest + strlen(rest);
-
+                        
+                        /* Manual strchr for comma */
+                        char* next_comma = NULL;
+                        uint64_t idx4 = 0;
+                        while (rest[idx4] != '\0')
+                        {
+                            if (rest[idx4] == ',')
+                            {
+                                next_comma = &rest[idx4];
+                                break;
+                            }
+                            idx4++;
+                        }
+                        char* operand_end = next_comma != NULL ? next_comma : rest + string_length(rest);
+                        
                         if (next_comma != NULL)
                             *next_comma = '\0';
-
-                        uint64_t op_len = strlen(rest);
-                        if (op_len > 0)
+                        
+                        uint64_t op_len2 = string_length(rest);
+                        if (op_len2 > 0)
                         {
-                            err = heap_allocate(op_len + 1, (voidptr_t*)&line->operands[line->operand_count]);
+                            err = heap_allocate(op_len2 + 1, (voidptr_t*)&line->operands[line->operand_count]);
                             if (err != PURE_OK)
                             {
                                 heap_deallocate(text_copy);
                                 return err;
                             }
-                            strcpy(line->operands[line->operand_count], rest);
+                            string_copy(line->operands[line->operand_count], rest);
                             line->operand_count++;
                         }
 
@@ -381,14 +431,14 @@ err_t venv_asm_parse(venv_asm_source_t* src, const char* asm_text)
                 else
                 {
                     /* Just opcode, no operands */
-                    uint64_t op_len = strlen(trimmed);
+                    uint64_t op_len = string_length(trimmed);
                     err = heap_allocate(op_len + 1, (voidptr_t*)&line->opcode);
                     if (err != PURE_OK)
                     {
                         heap_deallocate(text_copy);
                         return err;
                     }
-                    strcpy(line->opcode, trimmed);
+                    string_copy(line->opcode, trimmed);
                 }
             }
 
@@ -492,7 +542,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
 
     for (int i = 0; i < num_opcodes; i++)
     {
-        if (strcmp(line->opcode, opcodes[i].mnemonic) == 0)
+        if (string_compare(line->opcode, opcodes[i].mnemonic) == 0)
         {
             found = i;
             break;
@@ -501,7 +551,7 @@ static err_t encode_instruction(venv_asm_line_t* line, venv_insn_t* out_insn)
 
     if (found < 0)
     {
-        set_error("Unknown opcode: %s", line->opcode);
+        set_error("Unknown opcode");
         return PURE_ERROR_INVALID_ARGUMENT;
     }
 

@@ -3,9 +3,11 @@
  * Memory Implementation
  */
 
-#include "../Include/VenV/Memory.h"
-#include "../Include/VenV/ISA.h"
-#include "../Include/Interface/Std/Memory.h"
+#include "VenV/Memory.h"
+#include "VenV/ISA.h"
+#include "VenV/Device.h"
+#include "../Core/Memory.h"
+#include "../../Pure.h"
 
 /*---- Memory Initialization ----*/
 
