@@ -3,14 +3,14 @@
 #include "../../Pure.h"
 
 #if IS_PLATFORM_WINDOWS
-	#include "../../Platform/Windows/Kernel32.h"
-	#include "../../Platform/Windows/IOCalls.h"
-	#include "../../Platform/Windows/FileCalls.h"
-	#include "../../Platform/Windows/ProcessCalls.h"
+	#include "../Platform/Windows/Kernel32.h"
+	#include "../Platform/Windows/IOCalls.h"
+	#include "../Platform/Windows/FileCalls.h"
+	#include "../Platform/Windows/ProcessCalls.h"
 #endif
 
 #if IS_PLATFORM_LINUX
-	#include "../../Platform/Linux/Kernel.h"
+	#include "../Platform/Linux/Kernel.h"
 #endif
 
 typedef struct

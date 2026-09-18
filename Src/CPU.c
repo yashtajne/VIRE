@@ -1,11 +1,11 @@
 /*
- * VenV - Virtual Environment Engine
+ * VIRE - Virtual Isolated Runtime Environment
  * CPU Implementation
  */
 
-#include "VenV/CPU.h"
-#include "VenV/Memory.h"
-#include "VenV/ISA.h"
+#include "../Include/VenV/CPU.h"
+#include "../Include/VenV/Memory.h"
+#include "../Include/VenV/ISA.h"
 
 /*---- Helper Macros ----*/
 

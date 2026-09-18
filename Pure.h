@@ -20,6 +20,10 @@
     #error "Unsupported platform"
 #endif
 
+/*---- NULL Definition ----*/
+
+#define NULL ((void*)0)
+
 /*---- Fundamental Types ----*/
 
 /* Boolean type */
@@ -54,6 +58,10 @@ typedef const void*          const_voidptr_t;
 typedef char                 char_t;
 typedef char*                charseq_t;
 typedef const char*          const_charseq_t;
+
+/* Byte types */
+typedef uint8_t              byte_t;
+typedef uint8_t              uchar_t;
 
 /*---- Size Type ----*/
 
