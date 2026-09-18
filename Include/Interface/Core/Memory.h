@@ -7,9 +7,23 @@
 
 err_t memory_copy (voidptr_t from, voidptr_t to, uint64_t size);
 
+static inline void memory_set(voidptr_t ptr, uint8_t value, uint64_t size);
 static inline voidptr_t memory_alignPointer   (voidptr_t ptr, uint64_t alignment);
 static inline uint64_t  memory_alignForward   (uint64_t address, uint64_t alignment);
 static inline uint64_t  memory_nextPowerOfTwo (uint64_t bytes);
+
+static inline void
+memory_set(voidptr_t ptr, uint8_t value, uint64_t size)
+{
+    if (ptr == NULL) return;
+    uint8_t* p = (uint8_t*)ptr;
+    uint64_t i = 0;
+    while (i < size)
+    {
+        p[i] = value;
+        i++;
+    }
+}
 
 static inline uint64_t
 memory_alignForward(uint64_t address, uint64_t alignment)

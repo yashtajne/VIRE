@@ -4,8 +4,8 @@
  */
 
 #include "../Include/VenV/VenV.h"
-#include "../Include/Core/ASCII.h"
-#include "../Include/Core/Memory.h"
+#include "../Include/Interface/Core/ASCII.h"
+#include "../Include/Interface/Core/Memory.h"
 #include "../Pure.h"
 
 extern void console_putchar(char c);
